@@ -5,143 +5,45 @@
     "dark": [
       {
         "image": "dark-00.png",
-        "caption": "Every layer of the scene, nested layers included",
-        "at": null,
-        "typed": null
+        "caption": "Every layer of the scene, nested layers included"
       },
       {
         "image": "dark-01.png",
-        "caption": "Open a layer to see what is inside",
-        "at": [
-          52,
-          143
-        ],
-        "typed": null
+        "caption": "Open a layer and click an object to select it"
       },
       {
         "image": "dark-02.png",
-        "caption": "Objects are listed with their own toggles",
-        "at": [
-          66,
-          169
-        ],
-        "typed": null
+        "caption": "Alt+click the eye to isolate a layer"
       },
       {
         "image": "dark-03.png",
-        "caption": "Click an object to select it in the viewport",
-        "at": [
-          139,
-          351
-        ],
-        "typed": null
+        "caption": "Search finds layers and objects by name"
       },
       {
         "image": "dark-04.png",
-        "caption": "Open a group without leaving the panel",
-        "at": [
-          337,
-          195
-        ],
-        "typed": null
-      },
-      {
-        "image": "dark-05.png",
-        "caption": "Hide a layer",
-        "at": [
-          293,
-          533
-        ],
-        "typed": null
-      },
-      {
-        "image": "dark-06.png",
-        "caption": "Freeze another",
-        "at": [
-          315,
-          481
-        ],
-        "typed": null
-      },
-      {
-        "image": "dark-07.png",
-        "caption": "Search finds layers and objects by name",
-        "at": [
-          132,
-          50
-        ],
-        "typed": "lamp"
+        "caption": "Hide, freeze and rename right in the list"
       }
     ],
     "light": [
       {
         "image": "light-00.png",
-        "caption": "Every layer of the scene, nested layers included",
-        "at": null,
-        "typed": null
+        "caption": "Every layer of the scene, nested layers included"
       },
       {
         "image": "light-01.png",
-        "caption": "Open a layer to see what is inside",
-        "at": [
-          52,
-          143
-        ],
-        "typed": null
+        "caption": "Open a layer and click an object to select it"
       },
       {
         "image": "light-02.png",
-        "caption": "Objects are listed with their own toggles",
-        "at": [
-          66,
-          169
-        ],
-        "typed": null
+        "caption": "Alt+click the eye to isolate a layer"
       },
       {
         "image": "light-03.png",
-        "caption": "Click an object to select it in the viewport",
-        "at": [
-          139,
-          351
-        ],
-        "typed": null
+        "caption": "Search finds layers and objects by name"
       },
       {
         "image": "light-04.png",
-        "caption": "Open a group without leaving the panel",
-        "at": [
-          337,
-          195
-        ],
-        "typed": null
-      },
-      {
-        "image": "light-05.png",
-        "caption": "Hide a layer",
-        "at": [
-          293,
-          533
-        ],
-        "typed": null
-      },
-      {
-        "image": "light-06.png",
-        "caption": "Freeze another",
-        "at": [
-          315,
-          481
-        ],
-        "typed": null
-      },
-      {
-        "image": "light-07.png",
-        "caption": "Search finds layers and objects by name",
-        "at": [
-          132,
-          50
-        ],
-        "typed": "lamp"
+        "caption": "Hide, freeze and rename right in the list"
       }
     ]
   }

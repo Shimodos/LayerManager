@@ -5,8 +5,8 @@ scene, opens the real panel and saves it at 2x through QWidget.render, so
 nothing is captured from the screen. Output goes to %LM_OUT%:
 
   panel-dark.png, panel-light.png, search-dark.png, search-light.png
-  demo/<theme>-NN.png + demo/demo.json   (steps of the animated demo:
-                                          where the pointer goes, what it shows)
+  demo/<theme>-NN.png + demo/demo.json   (slides of the website carousel
+                                          and their captions)
 """
 import json
 import os
@@ -154,7 +154,7 @@ class Stage(object):
         panel.tree.setCurrentItem(None)
         panel._status_timer.stop()
         panel._show_summary()
-        pump(50)
+        pump(450)       # lets the search box finish fading its clear button out
 
     def click(self, row, zone):
         modifiers = QtCore.Qt.NoModifier
@@ -172,44 +172,56 @@ def demo(stage, theme):
     stage.reset()
     frames = []
 
-    def frame(caption, at=None, typed=None):
+    def quiet():
+        panel._status_timer.stop()
+        panel._show_summary()
+
+    def frame(caption):
         name = "demo/{}-{:02d}.png".format(theme, len(frames))
         save(panel, name)
-        frames.append({"image": os.path.basename(name), "caption": caption,
-                       "at": at, "typed": typed})
+        frames.append({"image": os.path.basename(name), "caption": caption})
 
+    # Each slide shows a different state, so no two look alike.
     frame("Every layer of the scene, nested layers included")
 
-    at = stage.point(stage.row("Furniture"), "chevron")
     stage.click(stage.row("Furniture"), "chevron")
-    frame("Open a layer to see what is inside", at)
-
-    at = stage.point(stage.row("Seating"), "chevron")
     stage.click(stage.row("Seating"), "chevron")
-    frame("Objects are listed with their own toggles", at)
-
-    at = stage.point(stage.row("Seating", "Sofa_Main"), "name")
+    stage.click(stage.row("Seating", "Armchair_02"), "lock")
     stage.click(stage.row("Seating", "Sofa_Main"), "name")
-    frame("Click an object to select it in the viewport", at)
+    quiet()
+    frame("Open a layer and click an object to select it")
 
-    at = stage.point(stage.row("Seating", "Armchair_01"), "lock")
-    stage.click(stage.row("Seating", "Armchair_01"), "lock")
-    frame("Open a group without leaving the panel", at)
+    stage.reset()
+    stage.click(stage.row("Architecture"), "chevron")
+    panel.isolate_layer("Architecture")
+    pump(250)
+    panel.tree.setCurrentItem(stage.row("Architecture"))
+    quiet()
+    frame("Alt+click the eye to isolate a layer")
 
-    at = stage.point(stage.row("Decor"), "eye")
-    stage.click(stage.row("Decor"), "eye")
-    frame("Hide a layer", at)
-
-    at = stage.point(stage.row("Lighting"), "freeze")
-    stage.click(stage.row("Lighting"), "freeze")
-    frame("Freeze another", at)
-
-    at = stage.widget_point(panel.search_input)
+    stage.reset()
     panel.search_input.setText("lamp")
-    pump(500)
-    panel._status_timer.stop()
-    panel._show_summary()
-    frame("Search finds layers and objects by name", at, "lamp")
+    pump(600)
+    quiet()
+    frame("Search finds layers and objects by name")
+
+    stage.reset()
+    stage.click(stage.row("Lighting"), "chevron")
+    stage.click(stage.row("Lighting"), "freeze")
+    stage.click(stage.row("Decor"), "eye")
+    row = stage.row("Decor")
+    panel.tree.setCurrentItem(row)
+    panel.tree.editItem(row, 0)
+    pump(250)
+    editor = panel.tree.findChild(QtWidgets.QLineEdit)
+    if editor is not None:
+        editor.setText("Decor and plants")
+        editor.end(False)
+    quiet()
+    frame("Hide, freeze and rename right in the list")
+    if editor is not None:
+        panel.tree.closeEditor(editor, QtWidgets.QAbstractItemDelegate.RevertModelCache)
+    pump(100)
     return frames
 
 
