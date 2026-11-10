@@ -1,4 +1,5 @@
 dist/
 tests/out/
+docs/shots/make_shots.log
 __pycache__/
 *.pyc
