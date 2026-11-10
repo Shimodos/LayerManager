@@ -1,0 +1,148 @@
+{
+  "width": 380,
+  "height": 600,
+  "themes": {
+    "dark": [
+      {
+        "image": "dark-00.png",
+        "caption": "Every layer of the scene, nested layers included",
+        "at": null,
+        "typed": null
+      },
+      {
+        "image": "dark-01.png",
+        "caption": "Open a layer to see what is inside",
+        "at": [
+          52,
+          143
+        ],
+        "typed": null
+      },
+      {
+        "image": "dark-02.png",
+        "caption": "Objects are listed with their own toggles",
+        "at": [
+          66,
+          169
+        ],
+        "typed": null
+      },
+      {
+        "image": "dark-03.png",
+        "caption": "Click an object to select it in the viewport",
+        "at": [
+          139,
+          351
+        ],
+        "typed": null
+      },
+      {
+        "image": "dark-04.png",
+        "caption": "Open a group without leaving the panel",
+        "at": [
+          337,
+          195
+        ],
+        "typed": null
+      },
+      {
+        "image": "dark-05.png",
+        "caption": "Hide a layer",
+        "at": [
+          293,
+          533
+        ],
+        "typed": null
+      },
+      {
+        "image": "dark-06.png",
+        "caption": "Freeze another",
+        "at": [
+          315,
+          481
+        ],
+        "typed": null
+      },
+      {
+        "image": "dark-07.png",
+        "caption": "Search finds layers and objects by name",
+        "at": [
+          132,
+          50
+        ],
+        "typed": "lamp"
+      }
+    ],
+    "light": [
+      {
+        "image": "light-00.png",
+        "caption": "Every layer of the scene, nested layers included",
+        "at": null,
+        "typed": null
+      },
+      {
+        "image": "light-01.png",
+        "caption": "Open a layer to see what is inside",
+        "at": [
+          52,
+          143
+        ],
+        "typed": null
+      },
+      {
+        "image": "light-02.png",
+        "caption": "Objects are listed with their own toggles",
+        "at": [
+          66,
+          169
+        ],
+        "typed": null
+      },
+      {
+        "image": "light-03.png",
+        "caption": "Click an object to select it in the viewport",
+        "at": [
+          139,
+          351
+        ],
+        "typed": null
+      },
+      {
+        "image": "light-04.png",
+        "caption": "Open a group without leaving the panel",
+        "at": [
+          337,
+          195
+        ],
+        "typed": null
+      },
+      {
+        "image": "light-05.png",
+        "caption": "Hide a layer",
+        "at": [
+          293,
+          533
+        ],
+        "typed": null
+      },
+      {
+        "image": "light-06.png",
+        "caption": "Freeze another",
+        "at": [
+          315,
+          481
+        ],
+        "typed": null
+      },
+      {
+        "image": "light-07.png",
+        "caption": "Search finds layers and objects by name",
+        "at": [
+          132,
+          50
+        ],
+        "typed": "lamp"
+      }
+    ]
+  }
+}

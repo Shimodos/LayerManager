@@ -1,0 +1,38 @@
+name: Release
+
+# Builds the .mzp (a zip archive with mzp.run at its root) and publishes it as a
+# GitHub release when a v* tag is pushed, e.g.  git tag v0.11 && git push origin v0.11
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build the .mzp
+        run: |
+          version=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' src/layer_manager.py)
+          test -n "$version"
+          grep -q "$version" installer/install.ms
+          grep -q "$version" installer/mzp.run
+          mkdir stage
+          cp -r installer/. stage/
+          cp src/layer_manager.py stage/
+          (cd stage && zip -r ../LayerManager.mzp .)
+          cp LayerManager.mzp "LayerManager_${version//./}.mzp"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" LayerManager.mzp LayerManager_*.mzp \
+            --title "Layer Manager $VERSION" \
+            --notes "See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md) for what changed. Install: drag LayerManager.mzp onto a 3ds Max viewport."

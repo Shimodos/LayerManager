@@ -1,0 +1,5 @@
+name "Layer Manager a0.011"
+version 2
+run "install.ms"
+drop "install.ms"
+clear temp on MAX exit
