@@ -283,10 +283,76 @@ def run():
     rt.getNodeByName("Wall_renamed").name = "Wall_02"
     pump(400)
 
+    # --- groups are hidden / frozen as a whole -------------------------------
+    if not row("Chairs").isExpanded():
+        panel.on_zone_clicked(row("Chairs"), "chevron", no_mod)
+
+    def chair(name):
+        r = row("Chairs")
+        for i in range(r.childCount()):
+            if r.child(i).text(0) == name:
+                return r.child(i)
+
+    family = ["Chair_group", "Chair_seat", "Chair_leg_0", "Chair_leg_1"]
+    panel.on_zone_clicked(chair("Chair_group"), "eye", no_mod)
+    hidden = [bool(rt.getNodeByName(n).isHidden) for n in family]
+    check("hiding a group hides its members", all(hidden), hidden)
+    check("member rows follow the group", not chair("Chair_seat").visible
+          and not chair("Chair_group").visible)
+    panel.on_zone_clicked(chair("Chair_group"), "eye", no_mod)
+    hidden = [bool(rt.getNodeByName(n).isHidden) for n in family]
+    check("showing a group shows its members", not any(hidden), hidden)
+    panel.on_zone_clicked(chair("Chair_group"), "freeze", no_mod)
+    frozen = [bool(rt.getNodeByName(n).isFrozen) for n in family]
+    check("freezing a group freezes its members", all(frozen), frozen)
+    panel.on_zone_clicked(chair("Chair_group"), "freeze", no_mod)
+    frozen = [bool(rt.getNodeByName(n).isFrozen) for n in family]
+    check("unfreezing a group unfreezes its members", not any(frozen), frozen)
+    pump(300)
+
+    # --- scene selection is shown on object rows ------------------------------
+    time.sleep(0.6)
+    rt.select(rt.getNodeByName("Wall_03"))
+    pump(150)
+    walls = row("Walls")
+    marked = [walls.child(i).text(0) for i in range(walls.childCount())
+              if walls.child(i).scene_selected]
+    check("selected object is marked in its open layer", marked == ["Wall_03"], marked)
+    cur = panel.tree.currentItem()
+    check("highlight moves to the selected object's row",
+          cur is not None and cur.text(0) == "Wall_03", cur.text(0) if cur else None)
+    rt.select(rt.getNodeByName("Chair_group"))     # a closed group: head + members
+    pump(150)
+    cur = panel.tree.currentItem()
+    check("selecting a group highlights the group row",
+          cur is not None and cur.text(0) == "Chair_group", cur.text(0) if cur else None)
+    check("the group row is marked", chair("Chair_group").scene_selected)
+    panel.refresh()
+    check("marks survive a refresh", chair("Chair_group").scene_selected)
+    rt.clearSelection()
+    pump(150)
+    check("clearing the selection clears the marks",
+          not any(r.scene_selected for r in panel._object_rows()))
+
     # --- theme --------------------------------------------------------------
+    panel._theme_mode = "auto"
     panel.apply_theme()
     check("theme follows Max", (__main__.T["window"] == __main__.DARK["window"])
           == __main__.max_is_dark())
+    was_dark = __main__.T["window"] == __main__.DARK["window"]
+    panel.toggle_theme()
+    check("theme button switches the palette",
+          (__main__.T["window"] == __main__.DARK["window"]) != was_dark)
+    check("the chosen theme is remembered",
+          __main__.load_theme_mode() == ("light" if was_dark else "dark"))
+    panel.toggle_theme()
+    check("theme button switches back",
+          (__main__.T["window"] == __main__.DARK["window"]) == was_dark)
+    __main__._settings().remove("theme")
+
+    # --- rounded corners -----------------------------------------------------
+    result = __main__.round_window_corners(panel)
+    check("Windows accepts the rounded-corner request", result == 0, result)
 
     # --- screenshot ---------------------------------------------------------
     panel.resize(380, 560)

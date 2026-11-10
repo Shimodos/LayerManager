@@ -116,7 +116,7 @@ class Stage(object):
         self.steps = []
 
     def set_theme(self, dark):
-        self.main.max_is_dark = lambda: dark
+        self.panel._theme_mode = "dark" if dark else "light"
         self.panel.apply_theme()
 
     def row(self, layer_name, obj=None):

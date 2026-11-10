@@ -1,4 +1,4 @@
-name "Layer Manager a0.011"
+name "Layer Manager a0.012"
 version 2
 run "install.ms"
 drop "install.ms"

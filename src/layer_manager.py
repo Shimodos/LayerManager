@@ -1,5 +1,5 @@
 """
-Layer Manager for 3ds Max  (a0.011)
+Layer Manager for 3ds Max  (a0.012)
 
 Floating Qt panel to manage scene layers:
   - live tree of all layers (nested layers included) with object counts
@@ -24,9 +24,10 @@ so a cheap poll of the layer list covers changes made in other tools.
 Works with PySide2 (3ds Max 2021 - 2024) and PySide6 (3ds Max 2025+).
 """
 
+import os
 import time
 
-try:                                        # 3ds Max 2025+
+try:                                      # 3ds Max 2025+
     from PySide6 import QtCore, QtGui, QtWidgets, QtSvg
 except ImportError:                         # 3ds Max 2021 - 2024
     from PySide2 import QtCore, QtGui, QtWidgets, QtSvg
@@ -35,11 +36,12 @@ import qtmax
 import pymxs
 from pymxs import runtime as rt
 
-VERSION = "a0.011"
+VERSION = "a0.012"
 CALLBACK_ID = "layer_manager_callback"
 OBJECT_NAME = "ADToolsLayerManager"
 DEFAULT_LAYER = "0"                         # built-in layer that can't be renamed/deleted
 MAX_OBJECT_ROWS = 2000                      # rows shown per expanded layer
+MAX_TRACKED_SELECTION = 3000                # larger selections are not marked row by row
 POLL_INTERVAL_MS = 800
 ROW_HEIGHT = 26
 
@@ -175,6 +177,10 @@ ICONS = {
     "chev_right": '<path d="M9 6l6 6-6 6"/>',
     "chev_down": '<path d="M6 9l6 6 6-6"/>',
     "expand": '<path d="M7 15l5 5 5-5M7 9l5-5 5 5"/>',
+    "sun": '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2'
+           'M4.900 4.900l1.400 1.400M17.700 17.700l1.400 1.400M19.100 4.900l-1.400 1.400'
+           'M6.300 17.700l-1.400 1.400"/>',
+    "moon": '<path d="M21 12.800A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/>',
     "layers": '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5"/>'
               '<path d="M3 16l9 5 9-5"/>',
     "cursor": '<path d="M5 3l14 7-6 2-2 6L5 3z"/>',
@@ -245,6 +251,21 @@ def node_from_handle(handle):
     return node
 
 
+def group_family(node):
+    """The node itself; for a group head also every member, nested groups
+    included. Hiding or freezing only the head leaves the group on screen,
+    because the head is just the dummy that holds the members."""
+    nodes = [node]
+    if rt.isGroupHead(node):
+        stack = list(node.children)
+        while stack:
+            child = stack.pop()
+            if rt.isGroupMember(child):
+                nodes.append(child)
+                stack.extend(list(child.children))
+    return nodes
+
+
 def node_kind(node):
     """Icon name for an object row."""
     try:
@@ -287,6 +308,7 @@ class Row(QtWidgets.QTreeWidgetItem):
         self.populated = False      # layers: object rows have been created
         self.group = None           # None | "open" | "closed"
         self.icon = "geometry"
+        self.scene_selected = False # objects: selected in the scene right now
 
     @property
     def expandable(self):
@@ -382,10 +404,13 @@ class RowDelegate(QtWidgets.QStyledItemDelegate):
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
         body = QtCore.QRectF(rect.adjusted(1, 1, -1, -1))
-        if selected:
+        if selected or row.scene_selected:
+            # Filled: the highlighted row and every object selected in the scene.
             painter.setPen(Qt.NoPen)
             painter.setBrush(QtGui.QColor(T["select"]))
             painter.drawRoundedRect(body, 5, 5)
+        if selected:
+            painter.setPen(Qt.NoPen)
             painter.setBrush(QtGui.QColor(T["accent"]))
             painter.drawRoundedRect(
                 QtCore.QRectF(body.left(), body.top() + 5, 3, body.height() - 10), 1.5, 1.5)
@@ -606,6 +631,12 @@ class CustomDockWidgetTitleBar(QtWidgets.QWidget):
         self.versionLabel = QtWidgets.QLabel(VERSION)
         self.versionLabel.setObjectName("version")
 
+        self.theme_button = QtWidgets.QPushButton()
+        self.theme_button.setCursor(Qt.PointingHandCursor)
+        self.theme_button.setFixedSize(26, 24)
+        self.theme_button.setIconSize(QtCore.QSize(14, 14))
+        self.theme_button.clicked.connect(self.parentWidget().toggle_theme)
+
         self.minimize_button = QtWidgets.QPushButton()
         self.minimize_button.setCursor(Qt.PointingHandCursor)
         self.minimize_button.setFixedSize(26, 24)
@@ -627,6 +658,7 @@ class CustomDockWidgetTitleBar(QtWidgets.QWidget):
         layout.addWidget(self.titleLabel)
         layout.addWidget(self.versionLabel)
         layout.addStretch()
+        layout.addWidget(self.theme_button)
         layout.addWidget(self.minimize_button)
         layout.addWidget(self.close_button)
 
@@ -636,6 +668,11 @@ class CustomDockWidgetTitleBar(QtWidgets.QWidget):
         self.setStyleSheet(themed(TITLEBAR_STYLE))
         self.logo.setPixmap(make_icon("layers", T["accent"]).pixmap(64, 64))
         self.close_button.setIcon(make_icon("close", T["text_dim"]))
+        # The button shows the theme a click switches to.
+        dark = T["window"] == DARK["window"]
+        self.theme_button.setIcon(make_icon("sun" if dark else "moon", T["text_dim"]))
+        self.theme_button.setToolTip(
+            "Switch to the light theme" if dark else "Switch to the dark theme")
         self.set_collapsed(self._collapsed)
 
     def set_collapsed(self, collapsed):
@@ -663,6 +700,10 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
         # Timestamp of the last object click inside the panel; selection-sync
         # is suppressed for a short window after it (see update_layer_selection).
         self._panel_select_time = 0.0
+        self._selected_handles = set()      # anim handles selected in the scene
+        # "auto" follows the 3ds Max colour scheme; the title bar button
+        # switches to an explicit "dark" / "light" and that choice is kept.
+        self._theme_mode = load_theme_mode()
 
         # Roll-up state (Qt::Tool windows have no real minimize -- see toggle_collapsed)
         self._collapsed = False
@@ -700,6 +741,7 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
         self.apply_theme()
         self.create_connections()
         self.refresh()
+        self._sync_scene_selection()
         self._poll_timer.start()
 
     # -- UI -----------------------------------------------------------------
@@ -793,9 +835,14 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
         return btn
 
     def apply_theme(self):
-        """Pick the palette matching the 3ds Max UI and restyle everything."""
+        """Pick the palette (the user's choice, else the one matching the
+        3ds Max UI) and restyle everything."""
+        if self._theme_mode in ("dark", "light"):
+            dark = self._theme_mode == "dark"
+        else:
+            dark = max_is_dark()
         T.clear()
-        T.update(DARK if max_is_dark() else LIGHT)
+        T.update(DARK if dark else LIGHT)
         self.setStyleSheet(themed("QDockWidget { background-color: @window@; }"))
         self._root.setStyleSheet(themed(STYLESHEET))
         self._search_action.setIcon(make_icon("search", T["text_faint"]))
@@ -808,6 +855,17 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
         if title_bar is not None:
             title_bar.apply_theme()
         self.tree.viewport().update()
+
+    def toggle_theme(self):
+        """Title bar button: switch between the dark and the light palette."""
+        dark_now = T["window"] == DARK["window"]
+        self._theme_mode = "light" if dark_now else "dark"
+        save_theme_mode(self._theme_mode)
+        self.apply_theme()
+
+    def showEvent(self, event):
+        super(LayerManagerDockWidget, self).showEvent(event)
+        round_window_corners(self)
 
     def toggle_collapsed(self):
         """Roll the panel up into its title bar and back.
@@ -1073,6 +1131,7 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
 
         self._restore_current(current)
         tree.verticalScrollBar().setValue(scroll)
+        self._mark_selected_rows()
         self._summary = self._make_summary(infos, matches)
         if not self._status_timer.isActive():
             self._show_summary()
@@ -1120,6 +1179,7 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
             child.handle = int(rt.GetHandleByAnim(node))
             child.setText(0, str(node.name))
             child.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            child.scene_selected = child.handle in self._selected_handles
             row.addChild(child)
             self._read_object_state(child, node)
         if len(nodes) > MAX_OBJECT_ROWS:
@@ -1192,31 +1252,85 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
         row = self.tree.currentItem() if self.tree else None
         return row.layer_name if row is not None else None
 
-    def update_layer_selection(self):
-        """Follow the scene selection: highlight the layer of the selected node.
+    def _object_rows(self):
+        """Every object row currently in the tree."""
+        out = []
+        for layer_row in self._layer_rows():
+            for i in range(layer_row.childCount()):
+                child = layer_row.child(i)
+                if child.kind == Row.OBJECT:
+                    out.append(child)
+        return out
 
-        Viewport selection always re-highlights the layer row. The only
-        exception is a short window right after an object was clicked inside
-        the panel: Max fires selectionSetChanged several times for that one
-        select(), and without the window the last fire would steal the
-        highlight from the clicked object row.
+    def _sync_scene_selection(self):
+        """Remember which nodes are selected in the scene and mark their rows."""
+        handles = set()
+        sel = rt.selection
+        if 0 < sel.count <= MAX_TRACKED_SELECTION:
+            try:
+                handles = {int(rt.GetHandleByAnim(n)) for n in sel}
+            except Exception:
+                handles = set()
+        self._selected_handles = handles
+        self._mark_selected_rows()
+
+    def _mark_selected_rows(self):
+        handles = self._selected_handles
+        for row in self._object_rows():
+            row.scene_selected = row.handle in handles
+        self.tree.viewport().update()
+
+    def _primary_selected(self, sel):
+        """The node whose row gets the highlight: a selected closed group is
+        its head plus all members, and the head is the row that stands for it."""
+        try:
+            for i in range(min(sel.count, 200)):
+                node = sel[i]
+                if rt.isGroupHead(node) and not rt.isGroupMember(node):
+                    return node
+        except Exception:
+            pass
+        return sel[0]
+
+    def update_layer_selection(self):
+        """Follow the scene selection.
+
+        Rows of selected objects are marked in every open layer. The highlight
+        moves to the selected object's row when its layer is open, otherwise to
+        the layer row. The only exception is a short window right after an
+        object was clicked inside the panel: Max fires selectionSetChanged
+        several times for that one select(), and without the window the last
+        fire would steal the highlight from the clicked object row.
         """
-        if self._collapsed or self._busy():
+        if self._collapsed:
+            return
+        self._sync_scene_selection()
+        if self._busy():
             return
         sel = rt.selection
         if sel.count == 0:
             return
         if time.time() - self._panel_select_time < 0.5:
             cur = self.tree.currentItem()
-            if cur is not None and cur.kind == Row.OBJECT:
-                try:
-                    selected = {int(rt.GetHandleByAnim(n)) for n in sel}
-                except Exception:
-                    selected = set()
-                if cur.handle in selected:
-                    return
+            if (cur is not None and cur.kind == Row.OBJECT
+                    and cur.handle in self._selected_handles):
+                return
         try:
-            self.select_layer_row(sel[0].layer.name)
+            node = self._primary_selected(sel)
+            layer_row = self._find_layer_row(node.layer.name)
+            if layer_row is not None and layer_row.isExpanded():
+                handle = int(rt.GetHandleByAnim(node))
+                for i in range(layer_row.childCount()):
+                    child = layer_row.child(i)
+                    if (child.kind == Row.OBJECT and child.handle == handle
+                            and not child.isHidden()):
+                        self.tree.blockSignals(True)
+                        self.tree.setCurrentItem(child)
+                        self.tree.scrollToItem(
+                            child, QtWidgets.QAbstractItemView.EnsureVisible)
+                        self.tree.blockSignals(False)
+                        return
+            self.select_layer_row(node.layer.name)
         except Exception:
             pass
 
@@ -1293,16 +1407,24 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
             self.set_status("Object no longer exists.", warn=True)
             self.request_refresh()
             return
+        family = [node]
+        what = "Group" if rt.isGroupHead(node) else "Object"
         if zone == "eye":
+            family = group_family(node)     # a group is hidden as a whole
+            hide = not bool(node.isHidden)
             with pymxs.undo(True, "Hide / unhide object"):
-                node.isHidden = not bool(node.isHidden)
-            self.set_status("Object '{}' {}".format(
-                node.name, "hidden" if node.isHidden else "shown"))
+                for n in family:
+                    n.isHidden = hide
+            self.set_status("{} '{}' {}".format(
+                what, node.name, "hidden" if hide else "shown"))
         elif zone == "freeze":
+            family = group_family(node)     # ... and frozen as a whole
+            freeze = not bool(node.isFrozen)
             with pymxs.undo(True, "Freeze / unfreeze object"):
-                node.isFrozen = not bool(node.isFrozen)
-            self.set_status("Object '{}' {}".format(
-                node.name, "frozen" if node.isFrozen else "unfrozen"))
+                for n in family:
+                    n.isFrozen = freeze
+            self.set_status("{} '{}' {}".format(
+                what, node.name, "frozen" if freeze else "unfrozen"))
         elif zone == "lock":
             if not rt.isGroupHead(node):
                 return
@@ -1312,6 +1434,12 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
                 node.name, "opened" if rt.isOpenGroupHead(node) else "closed"))
         self._redraw()
         self._read_object_state(row, node)
+        if len(family) > 1:
+            # Group members have rows of their own; they changed too.
+            members = {int(rt.GetHandleByAnim(n)): n for n in family}
+            for other in self._object_rows():
+                if other is not row and other.handle in members:
+                    self._read_object_state(other, members[other.handle])
         if zone == "lock":
             # The layer lock shows the aggregate state -- keep it in sync.
             parent = row.parent()
@@ -1737,10 +1865,46 @@ class LayerManagerDockWidget(QtWidgets.QDockWidget):
 
 
 # ---------------------------------------------------------------------------
-# Window position memory
+# Settings kept between sessions: window position and the chosen theme
 # ---------------------------------------------------------------------------
 def _settings():
-    return QtCore.QSettings("AD Tools", "LayerManager")
+    # LAYER_MANAGER_SETTINGS lets the tests use a store of their own instead
+    # of overwriting the user's.
+    return QtCore.QSettings(
+        "AD Tools", os.environ.get("LAYER_MANAGER_SETTINGS", "LayerManager"))
+
+
+def load_theme_mode():
+    try:
+        mode = _settings().value("theme")
+    except Exception:
+        mode = None
+    return mode if mode in ("dark", "light") else "auto"
+
+
+def save_theme_mode(mode):
+    try:
+        _settings().setValue("theme", mode)
+    except Exception as e:
+        print("Layer Manager: could not save the theme ({})".format(e))
+
+
+def round_window_corners(widget):
+    """Ask Windows 11 to round the corners of the floating panel.
+
+    A floating dock with a custom title bar is a frameless window, and DWM
+    rounds only natively framed ones unless told otherwise
+    (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_ROUND = 2). Returns the
+    HRESULT, or None when the call is unavailable; older Windows just refuses.
+    """
+    try:
+        import ctypes
+        preference = ctypes.c_int(2)
+        return ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            ctypes.c_void_p(int(widget.window().winId())), 33,
+            ctypes.byref(preference), ctypes.sizeof(preference))
+    except Exception:
+        return None
 
 
 def save_geometry(widget):

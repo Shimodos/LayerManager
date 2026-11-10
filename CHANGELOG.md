@@ -1,5 +1,21 @@
 # Changelog
 
+## a0.012
+
+Fixes after the first run in a live scene.
+
+### Fixed
+- Hide and freeze on a group row acted on the group head only, so the group stayed on screen.
+  They now apply to the head and every member, nested groups included.
+- Objects selected in the scene were not shown in the list. Their rows are now marked in every
+  open layer, and the highlight moves to the selected object's row (to the group row for a
+  selected group); with the layer closed it still goes to the layer row.
+
+### Added
+- Theme button in the title bar: switches between the dark and the light palette and remembers
+  the choice. Until it is used, the panel follows the 3ds Max colour scheme as before.
+- Rounded window corners on Windows 11.
+
 ## a0.011
 
 New interface and a pass over reliability.

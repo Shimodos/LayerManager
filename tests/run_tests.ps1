@@ -27,6 +27,7 @@ foreach ($year in $Years) {                 # never report a stale run
 $env:LM_SRC = Join-Path $root "src\layer_manager.py"
 $env:LM_TEST = Join-Path $root "tests\$Test"
 $env:LM_OUT = $out
+$env:LAYER_MANAGER_SETTINGS = "LayerManagerTests"   # keep the user's saved window and theme
 foreach ($year in $Years) {                 # one at a time: parallel instances crash
     $exe = "C:\Program Files\Autodesk\3ds Max $year\3dsmaxbatch.exe"
     & $exe (Join-Path $root "tests\run_in_max.ms") -log (Join-Path $out "max_$year.log") 2>&1 | Out-Null

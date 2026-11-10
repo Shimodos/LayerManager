@@ -1,4 +1,4 @@
--- Layer Manager a0.011 -- installer
+-- Layer Manager a0.012 -- installer
 -- 1) Removes older script versions from <userscripts>\python, then copies
 --    layer_manager.py there (a directory searched by python.ExecuteFile,
 --    per Autodesk docs "Executing Python from MAXScript").
@@ -51,9 +51,9 @@
             python.ExecuteFile ((getDir #userScripts) + "\\python\\layer_manager.py")
         )
 
-        messageBox ("Layer Manager a0.011 installed.\n\n" +
+        messageBox ("Layer Manager a0.012 installed.\n\n" +
                     "Old versions removed, script copied to:\n" + dstFile + "\n\n" +
-                    "If the toolbar button is already placed, it now runs a0.011.\n" +
+                    "If the toolbar button is already placed, it now runs a0.012.\n" +
                     "Otherwise: Customize > Customize User Interface > Toolbars,\n" +
                     "Category: \"AD Tools\", drag \"LayerMgr\" onto a toolbar.") \
                    title:"Layer Manager"

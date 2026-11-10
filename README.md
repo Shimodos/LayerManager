@@ -16,7 +16,7 @@ Website: https://shimodos.github.io/layer-manager-site/
 - **Layer tree** with nested layers, colour swatches and object counts.
 - **Objects inside each layer.** Click a row to select the object in the viewport,
   Ctrl+click to add it to the selection. Objects are tracked by handle, so renaming is safe.
-- **Hide / freeze** toggles on every row, for a layer or a single object.
+- **Hide / freeze** toggles on every row, for a layer, a single object or a whole group.
 - **Group lock**: open or close one group, or every group of a layer at once.
 - **Search** layers and objects by name.
 - **Isolate** a layer (Alt+click the eye), **Show All** to bring the rest back.
@@ -25,7 +25,8 @@ Website: https://shimodos.github.io/layer-manager-site/
 - **Live**: follows objects and layers created, deleted, renamed, hidden or frozen
   anywhere in 3ds Max, including the Scene Explorer.
 - Every change is one named **undo** step.
-- **Dark and light** palettes, picked from the 3ds Max colour scheme.
+- **Selection shown in the list**: rows of objects selected in the scene are marked.
+- **Dark and light** palettes, picked from the 3ds Max colour scheme or with the button in the title bar.
 - Stays quick on heavy scenes: object rows are built only for the layers you open.
 - Rolls up into its title bar and parks at the bottom of the 3ds Max window.
 

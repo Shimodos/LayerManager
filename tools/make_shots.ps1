@@ -12,6 +12,7 @@ New-Item -ItemType Directory -Force (Join-Path $out "demo") | Out-Null
 $env:LM_SRC = Join-Path $root "src\layer_manager.py"
 $env:LM_TEST = Join-Path $root "tools\shots\make_shots.py"
 $env:LM_OUT = $out
+$env:LAYER_MANAGER_SETTINGS = "LayerManagerTests"   # keep the user's saved window and theme
 $exe = "C:\Program Files\Autodesk\3ds Max $Year\3dsmaxbatch.exe"
 & $exe (Join-Path $root "tests\run_in_max.ms") -log (Join-Path $root "tests\out\shots_$Year.log") 2>&1 | Out-Null
 
