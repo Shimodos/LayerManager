@@ -335,10 +335,13 @@ def run():
     brand(__main__)
 
 
-status = "ok"
-try:
-    run()
-except Exception:
-    status = traceback.format_exc()
-with open(os.path.join(OUT, "make_shots.log"), "w") as fh:
-    fh.write(status)
+# tools/promo/make_promo.py loads this file for the demo scene and the Stage
+# helper; it sets LM_IMPORT_ONLY so the screenshots are not rendered again.
+if not os.environ.get("LM_IMPORT_ONLY"):
+    status = "ok"
+    try:
+        run()
+    except Exception:
+        status = traceback.format_exc()
+    with open(os.path.join(OUT, "make_shots.log"), "w") as fh:
+        fh.write(status)
