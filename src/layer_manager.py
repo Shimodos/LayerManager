@@ -24,6 +24,14 @@ so a cheap poll of the layer list covers changes made in other tools.
 Works with PySide2 (3ds Max 2021 - 2024) and PySide6 (3ds Max 2025+).
 """
 
+# python.ExecuteFile runs every script in the one shared __main__ namespace.
+# Another AD Tools panel started later (Backdrop has its own make_icon, ICONS,
+# T) would replace this panel's functions under it. So when run that way this
+# file loads itself again as a module of its own and hands __main__ back as
+# it found it -- see the end of the file.
+_SHARED = dict(globals()) if __name__ == "__main__" else None
+MODULE_NAME = "adtools_layer_manager"
+
 import os
 import time
 
@@ -223,9 +231,11 @@ def make_icon(name, color, size=16):
     pixmap = QtGui.QPixmap(size * scale, size * scale)
     pixmap.fill(Qt.transparent)
     painter = QtGui.QPainter(pixmap)
-    svg_renderer(name, color).render(
-        painter, QtCore.QRectF(0, 0, size * scale, size * scale))
-    painter.end()
+    try:                                    # an exception with a live painter crashes Max
+        svg_renderer(name, color).render(
+            painter, QtCore.QRectF(0, 0, size * scale, size * scale))
+    finally:
+        painter.end()
     return QtGui.QIcon(pixmap)
 
 
@@ -1995,5 +2005,42 @@ def main():
         print("Layer Manager failed to start:\n{}".format(traceback.format_exc()))
 
 
+def _run_isolated(path):
+    """Load this file as the module MODULE_NAME and open the panel from it."""
+    import importlib.util
+    import sys
+    spec = importlib.util.spec_from_file_location(MODULE_NAME, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[MODULE_NAME] = module
+    spec.loader.exec_module(module)
+    module.main()
+
+
+def _restore_shared(shared, own, namespace):
+    """Put __main__ back: drop the names this file added, restore the ones it
+    replaced (they may belong to another panel that is open). A name that
+    changed again since then is left alone: those are the callback bridges
+    the panel itself published in __main__ (see create_connections)."""
+    for name, value in own.items():
+        if namespace.get(name) is not value:
+            continue
+        if name in shared:
+            namespace[name] = shared[name]
+        elif not name.startswith("__"):
+            del namespace[name]
+
+
 if __name__ == '__main__':
-    main()
+    # What running this file put into __main__ so far.
+    _OWN = {_k: _v for _k, _v in list(globals().items())
+            if _k not in _SHARED or _SHARED[_k] is not _v}
+    _OWN["_OWN"] = _OWN
+    try:
+        # Not __file__: under python.ExecuteFile it can still name the script
+        # that was run before this one. The code object knows its own file.
+        _run_isolated(_run_isolated.__code__.co_filename)
+    except Exception:
+        import traceback
+        print("Layer Manager failed to start:\n{}".format(traceback.format_exc()))
+    finally:
+        _restore_shared(_SHARED, _OWN, globals())

@@ -10,6 +10,7 @@ nothing is captured from the screen. Output goes to %LM_OUT%:
 """
 import json
 import os
+import sys
 import time
 import traceback
 
@@ -296,9 +297,9 @@ def brand(main):
 
 
 def run():
-    import __main__
     build_scene()
     rt.python.ExecuteFile(SRC)
+    __main__ = sys.modules["adtools_layer_manager"]     # the panel's own module
     stage = Stage(__main__)
     panel = stage.panel
     panel.resize(SIZE)

@@ -80,12 +80,22 @@ def build_scene():
 def run():
     import __main__
     build_scene()
+    # Names another panel owns in the shared __main__ must survive the start.
+    sentinel = object()
+    __main__.make_icon = sentinel
     rt.python.ExecuteFile(SRC)
-    panel = getattr(__main__, "layer_manager", None)
+    mod = sys.modules.get("adtools_layer_manager")
+    panel = getattr(mod, "layer_manager", None)
     check("panel created", panel is not None)
     if panel is None:
         return
-    mod_row = __main__.Row
+    check("__main__ is handed back untouched", __main__.make_icon is sentinel
+          and not hasattr(__main__, "LayerManagerDockWidget") and not hasattr(__main__, "ICONS"),
+          [n for n in ("LayerManagerDockWidget", "ICONS", "T") if hasattr(__main__, n)])
+    check("callback bridges stay in __main__",
+          getattr(__main__, "layer_manager_request_refresh", None)
+          is mod.layer_manager_request_refresh)
+    mod_row = mod.Row
     no_mod = QtCore.Qt.NoModifier
     pump(50)
 
@@ -337,21 +347,21 @@ def run():
     # --- theme --------------------------------------------------------------
     panel._theme_mode = "auto"
     panel.apply_theme()
-    check("theme follows Max", (__main__.T["window"] == __main__.DARK["window"])
-          == __main__.max_is_dark())
-    was_dark = __main__.T["window"] == __main__.DARK["window"]
+    check("theme follows Max", (mod.T["window"] == mod.DARK["window"])
+          == mod.max_is_dark())
+    was_dark = mod.T["window"] == mod.DARK["window"]
     panel.toggle_theme()
     check("theme button switches the palette",
-          (__main__.T["window"] == __main__.DARK["window"]) != was_dark)
+          (mod.T["window"] == mod.DARK["window"]) != was_dark)
     check("the chosen theme is remembered",
-          __main__.load_theme_mode() == ("light" if was_dark else "dark"))
+          mod.load_theme_mode() == ("light" if was_dark else "dark"))
     panel.toggle_theme()
     check("theme button switches back",
-          (__main__.T["window"] == __main__.DARK["window"]) == was_dark)
-    __main__._settings().remove("theme")
+          (mod.T["window"] == mod.DARK["window"]) == was_dark)
+    mod._settings().remove("theme")
 
     # --- rounded corners -----------------------------------------------------
-    result = __main__.round_window_corners(panel)
+    result = mod.round_window_corners(panel)
     check("Windows accepts the rounded-corner request", result == 0, result)
 
     # --- screenshot ---------------------------------------------------------
@@ -369,17 +379,18 @@ def run():
 
     # --- single instance / close -------------------------------------------
     rt.python.ExecuteFile(SRC)
+    mod = sys.modules["adtools_layer_manager"]     # a fresh module on every run
     pump(200)
-    main_window = __main__.qtmax.GetQMaxMainWindow()
-    docks = [d for d in main_window.findChildren(QtWidgets.QDockWidget, __main__.OBJECT_NAME)
+    main_window = mod.qtmax.GetQMaxMainWindow()
+    docks = [d for d in main_window.findChildren(QtWidgets.QDockWidget, mod.OBJECT_NAME)
              if d.isVisible()]
     check("running the script again keeps one panel", len(docks) == 1, len(docks))
-    panel = __main__.layer_manager
+    panel = mod.layer_manager
     panel.close()
     pump(100)
     rt.LayerManager.newLayerFromName("AfterClose")      # must not raise
     pump(300)
-    check("closed panel leaves no live bridge", __main__._alive() is None)
+    check("closed panel leaves no live bridge", mod._alive() is None)
     del mod_row
 
 
