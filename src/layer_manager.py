@@ -1,5 +1,5 @@
 """
-Layer Manager for 3ds Max  (a0.012)
+Layer Manager for 3ds Max  (a0.013)
 
 Floating Qt panel to manage scene layers:
   - live tree of all layers (nested layers included) with object counts
@@ -44,7 +44,7 @@ import qtmax
 import pymxs
 from pymxs import runtime as rt
 
-VERSION = "a0.012"
+VERSION = "a0.013"
 CALLBACK_ID = "layer_manager_callback"
 OBJECT_NAME = "ADToolsLayerManager"
 DEFAULT_LAYER = "0"                         # built-in layer that can't be renamed/deleted

@@ -1,5 +1,16 @@
 # Changelog
 
+## a0.013
+
+Stability next to other scripts.
+
+### Fixed
+- 3ds Max runs every Python script in one shared namespace, so another script with functions
+  of the same name could replace the panel's own and break it, in one case crashing 3ds Max.
+  The panel now runs as a module of its own and leaves the shared namespace as it found it.
+- An error while an icon was being drawn left the drawing open, which can crash 3ds Max.
+  The drawing is now always closed.
+
 ## a0.012
 
 Fixes after the first run in a live scene.
